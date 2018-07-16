@@ -16,13 +16,15 @@ class textCNN(nn.Module):
             dropout: dropout ratio
             embedding_size: embedding size
     '''
-    def __init__(self, filter_size, filter_number, embedding_size = 300, dropout = 0.5, label_number = 19):
+    def __init__(self, filter_size, filter_number, embedding, embedding_size = 300, dropout = 0.5, label_number = 19):
+        super(textCNN, self).__init__()
+        self.embedding = embedding
         self.filter_size = filter_size
         self.filter_number = filter_number
         self.dropout = nn.Dropout(dropout)
         self.embedding_size = embedding_size
         # conv
-        self.conv = [nn.Conv2d(1, filter_number, (size, embedding_size)) for size in filter_size]
+        self.conv = nn.ModuleList([nn.Conv2d(1, filter_number, (size, embedding_size)) for size in filter_size])
         self.fc = nn.Linear(len(filter_size) * filter_number, label_number)
         self.lsm = nn.LogSoftmax(-1)
     def forward(self, x):
@@ -30,13 +32,17 @@ class textCNN(nn.Module):
             overview:
                 the forward method of textCNN
             params:
-                x: [#batch, 1, #length, #dim]
+                x: [#batch, 1, #length]
             return:
                 out: [#batch, #label_number]
         '''
-        temp = [conv(x) for conv in self.conv] # [batch, number, length - size + 1, 1]
+        # check the dimension
+        if x.dim() == 2:
+            x.unsqueeze_(1)
+        xe   = self.embedding(x)
+        temp = [conv(xe) for conv in self.conv] # [batch, number, length - size + 1, 1]
         temp = [F.relu(item) for item in temp]
-        temp = [F.max_pool2d(item, (item.shape[2], item.shape[3]).squeeze() for item in temp]
+        temp = [F.max_pool2d(item, (item.shape[2], item.shape[3])).squeeze() for item in temp]
         temp = torch.cat(temp, dim = 1)
         temp = self.dropout(temp)
         temp = self.fc(temp)
