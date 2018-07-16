@@ -48,8 +48,18 @@ class textCNN(nn.Module):
         temp = self.fc(temp)
         temp = self.lsm(temp)
         return temp
-        
-
+    
+    def clip_weight(self, max_norm = 3):
+        '''
+            overview:
+                clip the weight of fc layer if its l2 norm is greater than max_norm
+            params:
+                max_norm: maximum l2 norm for the weight, default is 3
+        '''        
+        norm = float(self.fc.weight.data.norm(2))
+        if norm > max_norm:
+            coef = max_norm / (norm + 1e-6)
+            self.fc.weight.data.mul_(coef)
 
 
 
