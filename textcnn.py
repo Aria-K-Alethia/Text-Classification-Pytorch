@@ -15,6 +15,7 @@ class textCNN(nn.Module):
             filter_number: number of filter for each filter size
             dropout: dropout ratio
             embedding_size: embedding size
+            label_number: number of classes in text
     '''
     def __init__(self, filter_size, filter_number, embedding, embedding_size = 300, dropout = 0.5, label_number = 19):
         super(textCNN, self).__init__()
