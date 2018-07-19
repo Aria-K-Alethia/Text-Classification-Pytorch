@@ -27,6 +27,7 @@ class RCNN(nn.Module):
                 embedding_size = 300, dropout = 0.5, label_number = 19, batch_first = True):
         super(RCNN, self).__init__()
         assert rnn_type in ['LSTM', 'GRU']
+        self.name = 'RCNN'
         self.embedding = embedding
         self.rnn_size = rnn_size
         self.rnn_layers = rnn_layers
@@ -43,7 +44,30 @@ class RCNN(nn.Module):
         self.fc1 = nn.Linear(embedding_size + rnn_size * rnn_layers, feature_number)         
         self.fc2 = nn.Linear(feature_number, label_number)
         self.lsm = nn.LogSoftmax(-1)
-
-
-
+    def forward(self, x):
+        '''
+            overview:
+                the forward method of RCNN
+            params:
+                x: [#batch, #length]
+            return:
+                lsm: [#batch, #label_number]
+        '''
+        xe = self.embedding(x)
+        # rnn
+        outputs, final = self.rnn(xe)
+        # cat
+        temp = torch.cat([outputs, xe], dim = -1)
+        # fc1
+        temp = self.fc1(temp)
+        temp = self.dropout(temp)
+        # non-linear
+        temp = F.relu(temp)
+        # max-pooling
+        temp = F.max_pool2d(temp, (temp.shape[1], 1)).squeeze()
+        # fc2
+        temp = self.fc2(temp)
+        # lsm        
+        temp = self.lsm(temp)
+        return temp
 

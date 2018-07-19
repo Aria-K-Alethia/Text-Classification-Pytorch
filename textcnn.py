@@ -19,6 +19,7 @@ class textCNN(nn.Module):
     '''
     def __init__(self, filter_size, filter_number, embedding, embedding_size = 300, dropout = 0.5, label_number = 19):
         super(textCNN, self).__init__()
+        self.name = 'textCNN'
         self.embedding = embedding
         self.filter_size = filter_size
         self.filter_number = filter_number
@@ -40,8 +41,11 @@ class textCNN(nn.Module):
         # check the dimension
         if x.dim() == 2:
             x.unsqueeze_(1)
+        # clip weight
+        self.clip_weight(3)
         xe   = self.embedding(x)
         temp = [conv(xe) for conv in self.conv] # [batch, number, length - size + 1, 1]
+        temp = [self.dropout(item) for item in temp]
         temp = [F.relu(item) for item in temp]
         temp = [F.max_pool2d(item, (item.shape[2], item.shape[3])).squeeze() for item in temp]
         temp = torch.cat(temp, dim = 1)
