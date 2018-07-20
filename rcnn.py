@@ -19,6 +19,7 @@ class RCNN(nn.Module):
             rnn_size: hidden layer size
             rnn_layers: the layer of rnn
             embedding: the embedding matrix
+            feature_number: feature number of rcnn
             embedding_size: embedding size, default is 300
             dropout: dropout ratio, default is 0.5
             label_number: label number, default is 19
