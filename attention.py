@@ -1,4 +1,4 @@
-# Copyright (c) 2018 @Beihang University
+# Copyright (c) 2018 Aria-K-Alethia@github.com
 # Licence: MIT
 # Global Attention
 # Any use of this code should display all the info above; the user agrees to assume all liability for the use of this code
