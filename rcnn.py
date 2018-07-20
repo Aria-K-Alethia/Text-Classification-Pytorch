@@ -15,7 +15,7 @@ class RCNN(nn.Module):
         overview:
             Recurrent CNN model
         params:
-            rnn_type: 'LSTM' or 'GRU'
+            rnn_type: 'LSTM' or 'GRU' or 'RNN'
             rnn_size: hidden layer size
             rnn_layers: the layer of rnn
             embedding: the embedding matrix
@@ -26,7 +26,7 @@ class RCNN(nn.Module):
     def __init__(self, rnn_type, rnn_size, rnn_layers,  embedding, feature_number,
                 embedding_size = 300, dropout = 0.5, label_number = 19, batch_first = True):
         super(RCNN, self).__init__()
-        assert rnn_type in ['LSTM', 'GRU']
+        assert rnn_type in ['LSTM', 'GRU', 'RNN']
         self.name = 'RCNN'
         self.embedding = embedding
         self.rnn_size = rnn_size
@@ -39,9 +39,10 @@ class RCNN(nn.Module):
                         input_size = embedding_size, hidden_size = rnn_size,
                         num_layers = rnn_layers, batch_first = batch_first,
                         dropout = dropout, bidirectional = True)
+        self.direction = 2
         self.dropout = nn.Dropout(dropout)
         self.feature_number = feature_number
-        self.fc1 = nn.Linear(embedding_size + rnn_size * rnn_layers, feature_number)         
+        self.fc1 = nn.Linear(embedding_size // 3 + rnn_size * self.direction, feature_number)         
         self.fc2 = nn.Linear(feature_number, label_number)
         self.lsm = nn.LogSoftmax(-1)
     def forward(self, x):
@@ -56,13 +57,15 @@ class RCNN(nn.Module):
         xe = self.embedding(x)
         # rnn
         outputs, final = self.rnn(xe)
+        self.dropout(outputs)
         # cat
-        temp = torch.cat([outputs, xe], dim = -1)
+        pos = outputs.shape[2] // 2
+        pos2 = self.embedding_size // 3
+        temp = torch.cat([outputs[:,:,:pos], xe[:,:,:pos2], outputs[:,:,pos:]], dim = 2)
         # fc1
         temp = self.fc1(temp)
-        temp = self.dropout(temp)
         # non-linear
-        temp = F.relu(temp)
+        temp = F.tanh(temp)
         # max-pooling
         temp = F.max_pool2d(temp, (temp.shape[1], 1)).squeeze()
         # fc2
