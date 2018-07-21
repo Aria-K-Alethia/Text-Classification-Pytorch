@@ -6,8 +6,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from rcnn import build_rnn
-from attention import GlobalAttention
+from utils import build_rnn
+from textCNN_Pytorch.attention import GlobalAttention
+
 
 class AttnRNN(nn.Module):
     '''
@@ -27,7 +28,7 @@ class AttnRNN(nn.Module):
             device: torch.device
     '''
     def __init__(self, rnn_type, rnn_size, rnn_layers, embedding, bidirectional, device,
-        embedding_size = 300, dropout = 0.5, label_nubmer = 19, attn_type = 'general',
+        embedding_size = 300, dropout = 0.5, label_number = 19, attn_type = 'general',
         batch_first = True):
         super(AttnRNN, self).__init__()
         assert rnn_type in ['LSTM', 'GRU', 'RNN']
@@ -38,7 +39,7 @@ class AttnRNN(nn.Module):
         self.embedding = embedding
         self.embedding_size = embedding_size
         self.dropout = dropout
-        self.label_nubmer = label_nubmer
+        self.label_number = label_number
         self.attn_type = attn_type
         self.batch_first = batch_first
         self.direction = 2 if bidirectional else 1
@@ -51,7 +52,7 @@ class AttnRNN(nn.Module):
         self.dummy = nn.Parameter(torch.ones(1, rnn_size * self.direction)) 
         self.attn = GlobalAttention(rnn_size * self.direction, device, attn_type = attn_type)
         self.dropout = nn.Dropout(dropout)
-        self.fc1 = nn.Linear(rnn_size * self.dircetion, label_number)
+        self.fc1 = nn.Linear(rnn_size * self.direction, label_number)
         self.lsm = nn.LogSoftmax(-1)
     
     def forward(self, x):
@@ -63,12 +64,17 @@ class AttnRNN(nn.Module):
             return:
                 [#batch, #label_number]
         '''
+        # get the length
+        lengths = (x != 0).sum(1).long()
         # embedding
-
+        xe = self.embedding(x)
         # rnn
-
+        outputs, final = self.rnn(xe)
         # attn
-
+        outputs, attn_dis = self.attn(outputs, self.dummy.expand(outputs.shape[0], -1), lengths)
         # fc
-
+        outputs = self.dropout(outputs)
+        outputs = self.fc1(outputs)
         # output
+        outputs = self.lsm(outputs)
+        return outputs

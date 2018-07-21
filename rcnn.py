@@ -6,9 +6,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from utils import build_rnn
 
-def build_rnn(rnn_type, **kwargs):
-    return getattr(nn, rnn_type)(**kwargs)
 
 class RCNN(nn.Module):
     '''
