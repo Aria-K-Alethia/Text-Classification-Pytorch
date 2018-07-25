@@ -57,6 +57,18 @@ class MemoryNetwork(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.fc1 = nn.Linear(rnn_size * self.direction, label_number)
         self.lsm = nn.LogSoftmax(-1)
+    def update_memory(self, enc_state):
+        def _transform(state):
+            if self.direction == 2:
+                state = torch.cat([state[0:state.shape[0]:2], state[1:state.shape[0]:2]], 2)
+            return state
+        if isinstance(enc_state, tuple):
+            temp = [_transform(item) for item in enc_state]
+        else:
+            temp = [_transform(enc_state)]
+        temp = [self.enc_linear(item) + self.query_linear(self.query) for item in temp]
+        temp = [F.relu(item) for item in temp]
+        return tuple(temp) if len(temp) == 2 else temp[0]
     
     def forward(self, x):
         '''
@@ -68,13 +80,19 @@ class MemoryNetwork(nn.Module):
                 [#batch, #label_number]
         '''
         # get the length
-
+        lengths = (x != 0).sum(1).long() 
         # embedding
-
+        xe = self.embedding(x)
         # episodic rnn
-
+        enc_state = None
+        for i in range(self.episode):
+            outputs, enc_state = self.rnn(xe, enc_state)
+            enc_state = self.update_memory(enc_state)
         # attn
-
+        outputs, attn_dis = self.attn(outputs, self.dummy.expand(outputs.shape[0], -1), lengths)
         # fc
-
+        outputs = self.dropout(outputs)
+        outputs = self.fc1(outputs)
         # output
+        outputs = self.lsm(outputs)
+        return outputs
