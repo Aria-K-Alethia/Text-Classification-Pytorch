@@ -5,6 +5,7 @@ Neural text classification models implemented by pytorch.
 - textCNN
 - RCNN(Recurrent CNN)
 - Attention RNN
+- Memory Network
 
 ## NOTE
 
