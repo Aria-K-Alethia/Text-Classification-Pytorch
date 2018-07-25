@@ -30,7 +30,7 @@ class MemoryNetwork(nn.Module):
     def __init__(self, rnn_type, rnn_size, rnn_layers, embedding, bidirectional, device,
         embedding_size = 300, dropout = 0.5, label_number = 19, attn_type = 'general',
         batch_first = True, episode = 2):
-        super(AttnRNN, self).__init__()
+        super(MemoryNetwork, self).__init__()
         assert rnn_type in ['LSTM', 'GRU', 'RNN']
         self.name = 'MemoryNetwork'
         self.rnn_type = rnn_type    
@@ -50,9 +50,10 @@ class MemoryNetwork(nn.Module):
                         num_layers = rnn_layers, batch_first = batch_first,
                         dropout = dropout, bidirectional = bidirectional)
         self.dummy = nn.Parameter(torch.ones(1, rnn_size * self.direction))
-        self.query = nn.Parameter(torch.ones(1, rnn_size * self.direction))
-        self.enc_linear = nn.Linear(rnn_size * self.direction, rnn_size * self.direction)
-        self.query_linear = nn.Linear(rnn_size * self.direction, rnn_size * self.direction)
+        self.query = nn.Parameter(torch.ones(1, rnn_size))
+        self.enc_linear = nn.Linear(rnn_size, rnn_size)
+        self.query_linear = nn.Linear(rnn_size, rnn_size)
+        self.episode = episode
         self.attn = GlobalAttention(rnn_size * self.direction, device, attn_type = attn_type)
         self.dropout = nn.Dropout(dropout)
         self.fc1 = nn.Linear(rnn_size * self.direction, label_number)
@@ -63,10 +64,10 @@ class MemoryNetwork(nn.Module):
                 state = torch.cat([state[0:state.shape[0]:2], state[1:state.shape[0]:2]], 2)
             return state
         if isinstance(enc_state, tuple):
-            temp = [_transform(item) for item in enc_state]
+            temp = [item for item in enc_state]
         else:
-            temp = [_transform(enc_state)]
-        temp = [self.enc_linear(item) + self.query_linear(self.query) for item in temp]
+            temp = [enc_state]
+        temp = [self.enc_linear(item) + self.query_linear(self.query.expand_as(item)) for item in temp]
         temp = [F.relu(item) for item in temp]
         return tuple(temp) if len(temp) == 2 else temp[0]
     
