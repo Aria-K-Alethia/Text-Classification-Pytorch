@@ -65,7 +65,7 @@ class RCNN(nn.Module):
         # fc1
         temp = self.fc1(temp)
         # non-linear
-        temp = F.tanh(temp)
+        temp = F.relu(temp)
         # max-pooling
         temp = F.max_pool2d(temp, (temp.shape[1], 1)).squeeze()
         # fc2
